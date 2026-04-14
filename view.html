@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>查看日記</title>
+    <style>
+        body {
+            background-color: #f9f1f0;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 800px;
+            height: 600px;
+            padding: 30px;
+            border-radius: 25px;
+            background-color: #d6a098;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .date {
+            display: flex;
+            align-items: center;
+            font-size: 20px;
+            font-style: italic;
+            margin-bottom: 10px;
+        }
+
+        #date-text {
+            font-size: 18px;
+            font-style: normal;
+        }
+
+        .text-box {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .title-line {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            font-size: 18px;
+            margin: 10px 0;
+            width: 100%;
+            max-width: 500px;
+            box-sizing: border-box;
+        }
+
+        .title-line label {
+            flex-shrink: 0;
+            margin-right: 10px;
+            font-weight: bold;
+            font-size: 25px;
+        }
+
+        #diary-title {
+            flex: 1;
+            min-width: 0;
+            max-width: 30;
+            font-size: 16px;
+            padding: 4px 6px;
+            border: none;
+            background-color: transparent;
+            outline: none;
+        }
+
+        #diary-title[readonly] {
+            color: #000;
+        }
+
+        #selected-mood {
+            display: none;
+            width: 50px;
+            height: 50px;
+            margin-left: 10px;
+        }
+
+        .content-line {
+            display: grid;
+            grid-template-columns: 90px 1fr;
+            align-items: start;
+            font-size: 16px;
+            width: 100%;
+            max-width: 500px;
+            gap: 0px;
+        }
+
+        .content-line label {
+            margin-top: 4px;
+            font-weight: bold;
+            font-size: 25px;
+        }
+
+        #diary-content {
+            margin-top: 4px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.6;
+            color: #000;
+            background-color: transparent;
+            border: none;
+            outline: none;
+            padding: 0;
+        }
+
+        .image-box {
+            width: 400px;
+            height: 250px;
+            flex-shrink: 0;
+            border: 2px solid #a66dd7;
+            border-radius: 20px;
+            background-color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .image-box img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .deleteBtn {
+            background-color: #ffc5c2;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .not-found {
+            font-size: 20px;
+            color: #fff;
+            margin-top: 30px;
+        }
+
+        #close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 28px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #333;
+            font-weight: bold;
+            z-index: 10;
+            transition: transform 0.2s ease;
+        }
+
+        #close-btn:hover {
+            transform: scale(1.2);
+            color: #000;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <button id="close-btn" title="關閉日記">Ｘ</button>
+        <div class="date">
+            <span id="date-text"></span>
+        </div>
+
+        <div class="text-box" id="text-box">
+            <div class="title-line">
+                <label for="diary-title">標題：</label>
+                <input type="text" id="diary-title" readonly value="">
+                <img id="selected-mood" src="" alt="心情圖示" />
+            </div>
+
+            <div class="content-line">
+                <label id="diary-content-label">內文：</label>
+                <div id="diary-content" aria-labelledby="diary-content-label"></div>
+            </div>
+
+            <div class="image-box" id="image-box">
+                <!-- 圖片會顯示在這裡 -->
+            </div>
+        </div>
+
+        <div class="footer">
+            <button class="deleteBtn">刪除</button>
+        </div>
+    </div>
+
+    <script>
+        function getQueryParam(name) {
+            const params = new URLSearchParams(window.location.search);
+            return params.get(name);
+        }
+
+        window.onload = () => {
+            const dateParam = getQueryParam('date');
+            const cleanDate = (dateParam || "").replace(/^diary-/, "").slice(0, 10);
+
+            const dateText = document.getElementById('date-text');
+            const notFound = document.getElementById('not-found');
+            const textBox = document.getElementById('text-box');
+
+            const diariesStr = localStorage.getItem('diaries');
+            if (!diariesStr) {
+                dateText.textContent = cleanDate;
+                notFound.style.display = 'block';
+                textBox.style.display = 'none';
+                return;
+            }
+
+            let diaries;
+            try {
+                diaries = JSON.parse(diariesStr);
+            } catch (e) {
+                console.error('diaries JSON 解析錯誤:', e);
+                diaries = [];
+            }
+
+            console.log("目前網址參數：", dateParam);
+            console.log("cleanDate：", cleanDate);
+            console.log("所有日記日期：", diaries.map(d => d.date));
+
+            const diaryData = diaries.find(entry => entry.date === cleanDate);
+
+            if (!diaryData) {
+                dateText.textContent = cleanDate;
+                notFound.style.display = 'block';
+                textBox.style.display = 'none';
+                return;
+            }
+
+            dateText.textContent = cleanDate;
+            document.getElementById('diary-title').value = diaryData.title || "";
+            document.getElementById('diary-content').textContent = diaryData.content || "";
+
+            const moodImg = document.getElementById('selected-mood');
+            if (diaryData.mood) {
+                moodImg.src = diaryData.mood;
+                moodImg.style.display = 'inline-block';
+            } else {
+                moodImg.style.display = 'none';
+            }
+
+            const imageBox = document.getElementById('image-box');
+            imageBox.innerHTML = '';
+            if (diaryData.image) {
+                const img = document.createElement('img');
+                img.src = diaryData.image;
+                img.alt = '日記圖片';
+                imageBox.appendChild(img);
+            } else {
+                imageBox.textContent = '沒有圖片';
+            }
+
+            document.querySelector('.deleteBtn').addEventListener('click', () => {
+                if (confirm(`確定要刪除 ${cleanDate} 的日記嗎？`)) {
+                    const updatedDiaries = diaries.filter(entry => entry.date !== cleanDate);
+                    localStorage.setItem('diaries', JSON.stringify(updatedDiaries));
+                    alert("已刪除日記！");
+                    window.location.href = 'main.html'; // 或其他主畫面網址
+                }
+            });
+
+            document.getElementById('close-btn').addEventListener('click', () => {
+                window.location.href = 'calendar.html';
+            });
+        };
+    </script>
+</body>
+
+</html>

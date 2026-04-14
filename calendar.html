@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>回憶日曆</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            background-color: #f9f1f0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            position: relative;
+            width: 460px;
+            max-width: 90vw;
+            transform: translate(-180px, -20px);
+        }
+
+        .header {
+            position: absolute;
+            top: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 10px 50px;
+            gap: 10px;
+        }
+
+        .balloonBtn,
+        .homeBtn {
+            border: 0;
+            background-color: #f9f1f0;
+        }
+
+        .header img {
+            width: 80px;
+            height: auto;
+        }
+
+        .year-month {
+            position: absolute;
+            top: -20px;
+            left: 93%;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #e2dada;
+            z-index: 999;
+            min-width: 200px;
+            white-space: nowrap;
+            transform: translateX(-50%);
+            cursor: pointer;
+        }
+
+        .selector {
+            display: none;
+            position: absolute;
+            top: 30px;
+            left: 93%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: white;
+            border-radius: 10px;
+            padding: 10px 15px;
+            box-shadow: 0 8px 9px rgba(0, 0, 0, 0.15);
+            color: #333;
+            gap: 20px;
+            align-items: center;
+            
+        }
+
+        .calendar-shadow {
+            background-color: #c9c4ba;
+            border-radius: 40px;
+            padding-bottom: 550px;
+            padding-left: 310px;
+            margin-top: -30px;
+            transform: translate(38px, 12px);
+            box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.3);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1;
+        }
+
+        .calendar-middle {
+            background-color: #d5d5d5;
+            border-radius: 40px;
+            padding-bottom: 500px;
+            padding-left: 252px;
+            transform: translate(70px, 5px);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 2;
+        }
+
+        .calendar {
+            background-color: #f9f1f0;
+            border-radius: 40px;
+            padding: 30px 85px 85px 75px;
+            width: 120%;
+            position: relative;
+            text-align: center;
+            margin-left: 70px;
+            z-index: 3;
+        }
+
+        .calendar-header {
+            background-color: #de635c;
+            color: white;
+            border-radius: 30px;
+            padding: 40px;
+            width: calc(100% + 90px);
+            margin-left: -85px;
+            position: relative;
+            transform: translateY(-60px);
+            margin-bottom: -10px;
+        }
+
+        .ring {
+            width: 30px;
+            height: 30px;
+            background-color: white;
+            border-radius: 50%;
+            position: absolute;
+            top: -5px;
+            z-index: 10;
+        }
+
+        .left-ring {
+            left: 70px;
+        }
+
+        .right-ring {
+            right: 70px;
+        }
+
+        .calendar-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 1.2em;
+            color: #6d5e91;
+        }
+
+        .calendar-table th,
+        .calendar-table td {
+            width: 40px;
+            height: 40px;
+            text-align: center;
+            padding: 5px;
+        }
+
+        .calendar-table th {
+            color: #82c7c9;
+            font-size: 1.4em;
+            font-weight: bold;
+        }
+
+        .calendar-table td span {
+            font-size: 1.4em;
+            font-weight: bold;
+            display: inline-block;
+            transition: transform 0.2s ease;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .calendar-table td span:hover {
+            transform: scale(1.2);
+            background-color: rgba(92, 91, 81, 0.5);
+        }
+
+        .highlight {
+            background-color: #fff3aa;
+        }
+
+        .has-diary::after {
+            content: '';
+            display: block;
+            width: 6px;
+            height: 6px;
+            background-color: red;
+            border-radius: 50%;
+            margin: 2px auto 0 auto;
+        }
+
+        .today-mark::after {
+            content: '';
+            display: block;
+            width: 6px;
+            height: 6px;
+            background-color: red;
+            border-radius: 50%;
+            margin: 2px auto 0 auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <button class="homeBtn"><img src="./icon/home.png" alt="home"></button>
+        <button class="balloonBtn"><img src="./icon/氣球icon.png" alt="balloon"></button>
+    </div>
+    <div class="container">
+        <div class="year-month" id="yearMonthDisplay">2025 APRIL</div>
+        <div class="selector" id="selector">
+            <select id="yearSelect"></select>
+            <select id="monthSelect"></select>
+        </div>
+        <div class="calendar-shadow"></div>
+        <div class="calendar-middle"></div>
+        <div class="calendar">
+            <div class="calendar-header"></div>
+            <div class="ring left-ring"></div>
+            <div class="ring right-ring"></div>
+            <table class="calendar-table">
+                <thead>
+                    <tr>
+                        <th>Su</th>
+                        <th>Mo</th>
+                        <th>Tu</th>
+                        <th>We</th>
+                        <th>Th</th>
+                        <th>Fr</th>
+                        <th>Sa</th>
+                    </tr>
+                </thead>
+                <tbody id="calendarBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const months = [
+            "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
+            "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"
+        ];
+
+        function generateCalendar(year, month) {
+            const today = new Date();
+            const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+            const todayDate = today.getDate();
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            let storedDiaries = JSON.parse(localStorage.getItem('diaries') || '[]');
+            let diaryDateSet = new Set();
+
+            // 收集有 title、content、mood 或 image 的日期
+            storedDiaries.forEach(entry => {
+                if (entry.title || entry.content || entry.mood || entry.image) {
+                    diaryDateSet.add(entry.date); // entry.date 是 "YYYY-MM-DD"
+                }
+            });
+
+            let date = 1;
+            let calendarHTML = "";
+            let rowCount = 0;
+
+            for (let i = 0; i < 6; i++) {
+                let row = $("<tr></tr>");
+                let hasData = false;
+                for (let j = 0; j < 7; j++) {
+                    if (i === 0 && j < firstDay || date > daysInMonth) {
+                        row.append("<td></td>");
+                    } else {
+                        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+                        let classes = [];
+
+                        if (diaryDateSet.has(dateStr)) classes.push("highlight"); // 有資料 → 黃色背景
+                        if (isCurrentMonth && date === todayDate) classes.push("has-diary"); // 是今天 → 紅點
+
+                        row.append(`<td><span class="${classes.join(' ')}" data-date="${dateStr}">${date}</span></td>`);
+                        date++;
+                        hasData = true;
+                    }
+                }
+                if (hasData) {
+                    calendarHTML += row.prop("outerHTML");
+                    rowCount++;
+                }
+            }
+
+            $("#calendarBody").html(calendarHTML);
+
+            const baseHeight = 440;
+            const extraPerRow = 60;
+            const middleHeight = baseHeight + (rowCount - 4) * extraPerRow;
+            const shadowHeight = middleHeight + 40;
+
+            $(".calendar-middle").css("padding-bottom", `${middleHeight}px`);
+            $(".calendar-shadow").css("padding-bottom", `${shadowHeight}px`);
+        }
+        $(document).ready(function () {
+            const $yearSelect = $("#yearSelect");
+            const $monthSelect = $("#monthSelect");
+            const $yearMonthDisplay = $("#yearMonthDisplay");
+            const $selector = $("#selector");
+
+            const today = new Date();
+            let currentYear = today.getFullYear();
+            let currentMonth = today.getMonth();
+
+            for (let y = 2000; y <= 2030; y++) {
+                $yearSelect.append(`<option value="${y}">${y}</option>`);
+            }
+
+            $.each(months, function (i, m) {
+                $monthSelect.append(`<option value="${i}">${m}</option>`);
+            });
+
+            $yearSelect.val(currentYear);
+            $monthSelect.val(currentMonth);
+            $yearMonthDisplay.text(`${currentYear} ${months[currentMonth]}`);
+            generateCalendar(currentYear, currentMonth);
+
+            $yearMonthDisplay.on("click", function () {
+                $selector.css("display", $selector.css("display") === "none" ? "flex" : "none");
+            });
+
+            $yearSelect.on("change", function () {
+                currentYear = parseInt($(this).val());
+                updateCalendar();
+                $selector.hide();
+            });
+
+            $monthSelect.on("change", function () {
+                currentMonth = parseInt($(this).val());
+                updateCalendar();
+                $selector.hide();
+            });
+
+            function updateCalendar() {
+                $yearMonthDisplay.text(`${currentYear} ${months[currentMonth]}`);
+                generateCalendar(currentYear, currentMonth);
+            }
+
+            $(document).on("click", ".calendar-table td span", function () {
+                const selectedDate = $(this).data("date");
+                const diaries = JSON.parse(localStorage.getItem('diaries') || '[]');
+                const entry = diaries.find(d => d.date === selectedDate && (d.title || d.content || d.mood || d.image));
+                if (entry) {
+                    window.location.href = `view.html?date=${selectedDate}`;
+                } else {
+                    alert("這天沒有日記唷！");
+                }
+            });
+
+            $(".homeBtn").click(function () {
+                window.location.href = "main.html";
+            });
+
+            $(".balloonBtn").click(function () {
+                window.location.href = "balloon.html";
+            });
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+Mono+TC&display=swap" rel="stylesheet" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      background-image: url('./icon/背景.png');
+      background-size: 1500px 900px;
+      display: flex;
+      font-family: '微軟正黑體', sans-serif;
+      overflow: hidden;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    /* 彈出提示框樣式 */
+    #popup {
+      position: absolute;
+      top: 30%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(219, 203, 187, 0.8);
+      padding: 30px;
+      border-radius: 30px;
+      text-align: center;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      z-index: 20;
+      max-width: 600px;
+    }
+
+    .popup h2 {
+      font-family: "LXGW WenKai Mono TC", monospace;
+      font-weight: 400;
+      font-size: 50px;
+      margin-bottom: 10px;
+      line-height: 1.2;
+    }
+
+    .popup p {
+      font-family: "LXGW WenKai Mono TC", monospace;
+      font-weight: 400;
+      font-size: 30px;
+      margin-bottom: 10px;
+      line-height: 1.2;
+    }
+
+    #close {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      font-size: 24px;
+      padding: 2px 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+
+    /* 點擊氣球後的語錄框 */
+    .quote-popup {
+      position: fixed;
+      top: 40%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.15);
+      max-width: 500px;
+      z-index: 30;
+    }
+
+    .quote-popup h2 {
+      font-size: 40px;
+      /* 你想要的大小 */
+      font-weight: 400;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+
+    /*氣球範圍容器 */
+    .balloon-container {
+      width: 1500px;
+      height: 900px;
+      position: relative;
+      background-size: cover;
+      background-repeat: no-repeat;
+      overflow: hidden;
+      margin: 0 auto;
+      border: 1px solid #ccc;
+    }
+
+    /* 氣球外層包裝（用於位置控制與動畫） */
+    .balloon-wrapper {
+      position: absolute;
+      width: auto;
+      height: auto;
+    }
+
+    /* 氣球本體樣式 */
+    .balloon {
+      border-radius: 50% 50% 45% 45%;
+      box-shadow: inset -4px -8px 0 rgba(0, 0, 0, 0.2);
+      position: relative;
+      user-select: none;
+      z-index: 10;
+      cursor: pointer;
+    }
+
+    .balloon:hover {
+      cursor: url('./icon/needle.cur'), auto;
+    }
+
+    .balloon.armed:hover {
+      cursor: url('./icon/needle.cur'), auto;
+    }
+
+    /* 氣球底下的線 */
+    .string {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      width: 2px;
+      height: 70px;
+      background: #666;
+      transform-origin: top center;
+      transform: rotate(10deg);
+      /* 旋轉10度，看起來彎曲 */
+      animation: sway 3s ease-in-out infinite alternate;
+
+    }
+
+    /* 線條搖擺動畫 */
+    @keyframes sway {
+      0% {
+        transform: rotate(10deg);
+      }
+
+      100% {
+        transform: rotate(-10deg);
+      }
+    }
+
+    /* 被點擊後的氣球樣式（消失） */
+    .balloon-wrapper.popped .balloon {
+      background: transparent !important;
+      box-shadow: none !important;
+      border: none !important;
+      cursor: default !important;
+      position: relative;
+    }
+
+    /* 爆炸動畫顯示 */
+    .explosion {
+      position: absolute;
+      top: 20px;
+      left: 10px;
+      font-size: 32px;
+      pointer-events: none;
+      z-index: 20;
+      user-select: none;
+    }
+
+    /* 遮罩背景 */
+    #overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 20;
+      display: none;
+    }
+  </style>
+</head>
+
+<body class="stabbing">
+  <!-- 遮罩（點擊語錄時出現） -->
+  <div id="overlay"></div>
+  <!-- 初始說明彈出框 -->
+  <div class="popup" id="popup">
+    <div id="close">X</div>
+    <h2>給今天的自己一句話吧～</h2>
+    <p>選擇一顆中意的氣球<br>戳破它吧!!!</p>
+  </div>
+  <!-- 氣球容器 -->
+  <div class="balloon-container"></div>
+
+  <script>
+    $(document).ready(function () {
+      // ✅ 一進來就檢查今天是否已有語錄
+      const today = new Date();
+      const dateKey = today.getFullYear() + '-' +
+        String(today.getMonth() + 1).padStart(2, '0') + '-' +
+        String(today.getDate()).padStart(2, '0');
+
+      let diaries = JSON.parse(localStorage.getItem('diaries') || '[]');
+      let diary = diaries.find(d => d.date === dateKey);
+
+      if (diary && diary.quote) {
+        alert("今天已經戳過一顆氣球囉！");
+        window.location.href = "main.html";
+        return; // 結束後續處理
+      }
+
+      let canPop = false;  // 預設不能戳氣球
+
+      $('#close').click(function () {
+        $('#popup').hide();
+        canPop = true;  // 點了X才允許戳氣球
+        $('.balloon').addClass('armed'); // 加上 class
+      });
+      // 氣球顏色
+      const colors = [
+        "#887bb0",
+        "#f4b9b8",
+        "#ffffff",
+        "#f6c869",
+        "#85d2d0",
+        "#fff4bd",
+        "#a395cc",
+        "#a395cc",
+      ];
+
+      // 語錄陣列
+      const quotes = [
+        "走走停停 或雨或晴 沒關係 都是好風景",
+        "自己的人生 隨心即是滿分",
+        "會焦慮 也會治癒",
+        "生活需要鈍感力 慢慢拂去急躁與不安",
+        "好好吃飯 乖乖睡覺",
+        "我們允許一切發生",
+        "不要對自己失望",
+        "不預設 任何事",
+        "答案在路上 自由在風裡",
+        "不求事事順心 但求永遠開心",
+        "就做自己吧 記得開心",
+        "生活是自己的感受 而不是別人的敘述",
+        "生活的純粹即喜樂",
+        "熱愛生活的人也會被生活治癒",
+        "我們都是人生的主角",
+      ];
+
+      const container = $('.balloon-container');
+      const containerWidth = container.width();
+      const containerHeight = container.height();
+      const maxBalloons = 15;  // 最多出現氣球數量
+      const colorLimit = 2;// 每種顏色最多出現幾次
+      const colorCounts = {};
+      colors.forEach(color => { colorCounts[color] = 0; });
+      const positions = [];// 儲存氣球位置，避免重疊
+
+
+      // 隨機挑選未超過次數限制的顏色
+      function getAvailableColor() {
+        const availableColors = colors.filter(c => colorCounts[c] < colorLimit);
+        if (availableColors.length === 0) return null;
+        const selected = availableColors[Math.floor(Math.random() * availableColors.length)];
+        colorCounts[selected]++;
+        return selected;
+      }
+
+
+      // 確保新位置與其他氣球有足夠距離
+      function isFarEnough(x, y, minDistance = 120) {
+        return positions.every(pos => {
+          const dx = pos.x - x;
+          const dy = pos.y - y;
+          return Math.sqrt(dx * dx + dy * dy) >= minDistance;
+        });
+      }
+
+      // 產生一個可用位置
+      function getStartPosition(width, height) {
+        const margin = 10; // 距離邊界最少距離
+        let x, y;
+        let attempts = 0;
+        const half = positions.length < maxBalloons / 2; // 前半個氣球放左邊
+
+        do {
+          const leftStart = half ? 0 : containerWidth / 2;
+          const leftEnd = half ? containerWidth / 2 : containerWidth;
+          x = margin + Math.random() * (leftEnd - leftStart - width - margin * 2) + leftStart;
+          y = margin + Math.random() * (containerHeight - height - margin * 2);
+          attempts++;
+          if (attempts > 100) break;
+        } while (!isFarEnough(x, y));
+        positions.push({ x, y });
+        return { x, y };
+      }
+
+
+
+
+
+      // 建立氣球
+      function createBalloon() {
+        const color = getAvailableColor();
+        if (!color) return null;
+
+
+        const wrapper = $('<div class="balloon-wrapper"></div>');
+        const balloon = $('<div class="balloon"></div>');
+        const string = $('<div class="string"></div>');
+
+        const width = 90;
+        const height = 100;
+        const { x: startLeft, y: startTop } = getStartPosition(width, height);
+
+        wrapper.css({
+          position: 'absolute',
+          left: `${startLeft}px`,
+          top: `${startTop}px`
+        });
+
+        balloon.css({
+          background: color,
+          width: `${width}px`,
+          height: `${height}px`,
+        });
+
+        // 點擊氣球時觸發事件
+        balloon.on("click", function () {
+          if (!canPop) return; // 如果還不能戳，直接跳出
+
+          if (!wrapper.hasClass("popped")) {
+            $('body').removeClass('stabbing'); // 回復預設游標
+            wrapper.addClass("popped");
+            wrapper.stop(true);// 停止氣球漂浮動畫
+
+            colorCounts[color]--;
+
+            // 新增爆炸符號元素
+            const explosion = $('<div class="explosion">💥</div>');
+            wrapper.append(explosion);
+
+            const quote = quotes[Math.floor(Math.random() * quotes.length)];
+            saveQuoteToToday(quote); // ✅ 儲存語錄到當天卡片
+            $('#overlay').fadeIn();// 顯示遮罩
+
+            const newPopup = $(`
+              <div class="popup quote-popup">
+                <h2>${quote}</h2>
+              </div>
+            `);
+            $('body').append(newPopup);
+
+            const closeQuotePopup = function () {
+              newPopup.remove();
+              $('#overlay').fadeOut(); // 關閉遮罩
+              $(document).off('click', closeQuotePopup); // 避免多次綁定
+              window.location.href = "main.html"; // 點擊後跳轉主畫面
+            }
+
+            setTimeout(() => {
+              $(document).on('click', closeQuotePopup);
+            }, 100); // 延遲避免與點擊氣球衝突
+
+            // 800ms 後移除 wrapper，爆炸符號可以看清楚
+            setTimeout(() => {
+              wrapper.remove();
+            }, 150);
+          }
+        });
+        balloon.append(string);
+        wrapper.append(balloon);
+        container.append(wrapper);
+        floatRandom(wrapper);
+      }
+      // 生成所有氣球
+      for (let i = 0; i < maxBalloons; i++) {
+        const balloon = createBalloon();
+        if (balloon) {
+          container.append(balloon);
+          floatRandom(balloon);
+        }
+      }
+
+      function floatRandom($el) {
+        const elWidth = $el.outerWidth();
+        const elHeight = $el.outerHeight();
+
+        const containerOffset = container.offset();
+        const containerWidth = container.width();
+        const containerHeight = container.height();
+
+        const minLeft = 0;
+        const maxLeft = containerWidth - elWidth;
+        const minTop = 0;
+        const maxTop = containerHeight - elHeight;
+
+        const newLeft = Math.random() * (maxLeft - minLeft) + minLeft;
+        const newTop = Math.random() * (maxTop - minTop) + minTop;
+
+
+        $el.animate({
+          left: newLeft,
+          top: newTop
+        }, 5000 + Math.random() * 2500, function () {
+          floatRandom($el);
+        });
+      }
+
+      function saveQuoteToToday(quote) {
+        const today = new Date();
+        const dateKey = today.getFullYear() + '-' +
+          String(today.getMonth() + 1).padStart(2, '0') + '-' +
+          String(today.getDate()).padStart(2, '0');
+
+        let diaries = JSON.parse(localStorage.getItem('diaries') || '[]');
+        let diary = diaries.find(d => d.date === dateKey);
+
+        // ✅ 如果今天已經有語錄，就不儲存也不彈出
+        if (diary && diary.quote) {
+          alert("今天已經戳過一顆氣球囉！");
+          return false;
+        }
+
+        if (diary) {
+          diary.quote = quote;
+        } else {
+          diaries.push({ date: dateKey, quote: quote });
+        }
+
+        localStorage.setItem('diaries', JSON.stringify(diaries));
+        return true; // 表示成功儲存
+      }
+    });
+  </script>
+</body>
+
+</html>

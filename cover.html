@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+  <title>MoodBloom｜即時心情療癒日記板</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    body {
+      background-color: #887bb0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      flex-direction: column;
+      overflow: hidden;
+      font-family: 'Gloria Hallelujah', cursive;
+    }
+
+    .logo {
+      color: #f9f1f0;
+      font-size: 70px;
+      z-index: 2;
+    }
+
+    .start {
+      color: #f4b9b8;
+      font-size: 40px;
+      margin-top: 20px;
+      z-index: 2;
+    }
+
+    .arrowbtn {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background-color: #fff4bd;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 50px;
+      color: #887bb0;
+      border: none;
+      cursor: pointer;
+      margin-top: 40px;
+      transition: all 0.3s ease;
+      z-index: 2;
+    }
+
+    .bubble {
+      position: absolute;
+      color: rgba(255, 255, 255, 0.4);
+      white-space: nowrap;
+      pointer-events: none;
+      animation: floatBubble 12s ease-in-out infinite alternate;
+    }
+
+    @keyframes floatBubble {
+      0% {
+        transform: translate(0, 0);
+        opacity: 0.2;
+      }
+      50% {
+        transform: translate(20px, -30px);
+        opacity: 0.7;
+      }
+      100% {
+        transform: translate(-15px, -50px);
+        opacity: 0.2;
+      }
+    }
+  </style>
+
+  <script>
+    $(document).ready(function () {
+      // 按鈕 hover 效果
+      $(".arrowbtn").hover(
+        function () {
+          $(this).find(".arrow").css({
+            transform: "translateX(8px) scale(1.2)",
+            transition: "transform 0.3s ease"
+          });
+        },
+        function () {
+          $(this).find(".arrow").css("transform", "translateX(0) scale(1)");
+        }
+      );
+
+      // 按鈕點擊轉跳到 main.html
+      $(".arrowbtn").click(function () {
+        window.location.href = "main.html";
+      });
+
+      // === ✨ 隨機氣泡生成（使用格狀分佈）
+      const messages = [
+        "最近好嗎？", "Love Yourself", "Have a good time", "停下來吧",
+        "今天心情怎麼樣？", "在意是什麼", "放鬆一下", "All Good",
+        "No problem", "好好休息", "你最棒了", "今天吃飯了嗎？", "我在乎你"
+      ];
+
+      const rows = 5;
+      const cols = 5;
+      const total = rows * cols;
+      const shuffledIndexes = Array.from({ length: total }, (_, i) => i)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 25); // 產生 25 個 bubble
+
+      shuffledIndexes.forEach(index => {
+        const row = Math.floor(index / cols);
+        const col = index % cols;
+
+        // 將每個格子的中心點計算出來
+        const baseX = (col + 0.5) * (100 / cols);
+        const baseY = (row + 0.5) * (100 / rows);
+
+        // 加入小幅度隨機偏移，讓位置不那麼呆板
+        const x = baseX + (Math.random() - 0.5) * 10; // ±5%
+        const y = baseY + (Math.random() - 0.5) * 10;
+
+        const msg = messages[Math.floor(Math.random() * messages.length)];
+        const bubble = $("<div class='bubble'></div>").text(msg);
+
+        const size = 14 + Math.random() * 10;       // 字體大小介於 14px 至 24px
+        const delay = Math.random() * 10;             // 動畫延遲
+        const duration = 10 + Math.random() * 10;       // 動畫持續時間
+        const rotation = (Math.random() * 30 - 15).toFixed(1); // 旋轉 -15° 到 +15°
+
+        bubble.css({
+          left: `${x}%`,
+          top: `${y}%`,
+          fontSize: `${size}px`,
+          transform: `rotate(${rotation}deg)`,
+          animationDelay: `${delay}s`,
+          animationDuration: `${duration}s`,
+        });
+
+        $("body").append(bubble);
+      });
+    });
+  </script>
+</head>
+<body>
+  <div class="logo">MoodBloom</div>
+  <div class="start">開始製作</div>
+  <button class="arrowbtn"><span class="arrow">&#10145;</span></button>
+</body>
+</html>
